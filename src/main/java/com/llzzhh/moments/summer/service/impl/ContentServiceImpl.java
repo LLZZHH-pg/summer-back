@@ -1,0 +1,200 @@
+package com.llzzhh.moments.summer.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.llzzhh.moments.summer.dto.ContentDTO;
+import com.llzzhh.moments.summer.entity.Content;
+import com.llzzhh.moments.summer.mapper.ContentMapper;
+import com.llzzhh.moments.summer.service.ContentService;
+import com.llzzhh.moments.summer.entity.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ContentServiceImpl implements ContentService {
+
+    private final ContentMapper contentMapper;
+
+    @Value("${app.upload.dir}")
+    private String uploadDir;
+
+    @Value("${app.upload.url-path}")
+    private String urlPath;
+
+    @Override
+    public List<ContentDTO> getContents() {
+        Integer userId = getCurrentUserId();
+        // 使用条件构造器查询
+        QueryWrapper<Content> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("uid", userId) // 注意这里使用数据库实际字段名
+                .ne("state", "delete"); // 排除已删除的内容
+        List<Content> contents = contentMapper.selectList(queryWrapper);
+        return contents.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void saveContent(ContentDTO dto) {
+        Content content = convertToEntity(dto);
+        content.setUserId(getCurrentUserId());
+
+        try {
+            if (dto.getContentId() == null || dto.getContentId().trim().isEmpty()) {
+                // 新增：生成唯一ID和设置创建时间
+                content.setContentId(UUID.randomUUID().toString());
+                content.setCreateTime(LocalDateTime.now());
+                contentMapper.insert(content);
+            } else {
+                // 更新：使用现有ID
+                content.setCreateTime(LocalDateTime.now());
+                content.setContentId(dto.getContentId());
+                contentMapper.updateById(content);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("保存内容失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void updateContentState(String id, String state) {
+        Content content = new Content();
+        if (id == null || id.isBlank() || "undefined".equals(id) || "null".equals(id)) {
+            throw new IllegalArgumentException("无效的内容ID");
+        }
+//        content.setId(id);
+//        content.setState(state);
+        // 条件更新：仅更新当前用户的内容
+//        UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+//        updateWrapper.eq("id", id)
+//                .eq("uid", getCurrentUserId());
+//        contentMapper.update(content, updateWrapper);
+        try {
+            UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", id)
+                    .eq("uid", getCurrentUserId()) // 仅更新当前用户的内容
+                    .set("state",state); // 直接在UpdateWrapper中设置要更新的字段
+            contentMapper.update(null, updateWrapper);
+        } catch (Exception e) {
+            throw new RuntimeException("更新内容失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public void deleteContent(String id) { // 软删除：将状态改为delete
+        if (id == null || id.isBlank() || "undefined".equals(id) || "null".equals(id)) {
+            throw new IllegalArgumentException("无效的内容ID");
+        }
+        try {
+            UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", id)
+                    .eq("uid", getCurrentUserId()) // 仅更新当前用户的内容
+                    .set("state", "delete"); // 直接在UpdateWrapper中设置要更新的字段
+            contentMapper.update(null, updateWrapper);
+        } catch (Exception e) {
+            throw new RuntimeException("删除内容失败: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String uploadFile(MultipartFile file) {
+        try {
+            // 检查文件是否为空
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("上传文件为空");
+            }
+
+            // 创建上传目录
+            File uploadDirFile = new File(uploadDir);
+            if (!uploadDirFile.exists()) {
+                boolean created = uploadDirFile.mkdirs();
+                if (!created) {
+                    throw new RuntimeException("无法创建上传目录: " + uploadDir);
+                }
+            }
+
+            // 验证文件名
+            String originalFilename = file.getOriginalFilename();
+            if (originalFilename == null || originalFilename.isBlank()) {
+                throw new IllegalArgumentException("文件名无效");
+            }
+
+            // 检查文件扩展名
+            int lastDotIndex = originalFilename.lastIndexOf(".");
+            if (lastDotIndex == -1) {
+                throw new IllegalArgumentException("文件缺少扩展名");
+            }
+
+            String extension = originalFilename.substring(lastDotIndex);
+            String uniqueFileName = UUID.randomUUID() + extension;
+            String filePath = uploadDir + File.separator + uniqueFileName;
+
+            // 复制文件
+            Files.copy(file.getInputStream(), new File(filePath).toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+            return urlPath + "/" + uniqueFileName;
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (IOException e) {
+            throw new RuntimeException("文件上传失败: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new RuntimeException("未知错误: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public boolean deleteFile(String fileUrl) {
+        String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+        String filePath = uploadDir + File.separator + fileName;
+
+        File file = new File(filePath);
+        return file.exists() && file.delete();
+    }
+
+    private Integer getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User currentUser) {
+            // 直接从User对象获取uid
+            System.out.println("当前用户ID: " + currentUser.getUid());
+            return currentUser.getUid();
+        }
+        throw new SecurityException("用户未认证");
+    }
+
+    private ContentDTO convertToDTO(Content content) {
+        ContentDTO dto = new ContentDTO();
+        dto.setContentId(content.getContentId());
+        dto.setUserId(content.getUserId());
+        dto.setContent(content.getContent());
+        dto.setState(content.getState());
+        dto.setCreateTime(content.getCreateTime()); // 修正字段名
+        // 如有需要可补充其他字段
+        return dto;
+    }
+
+    private Content convertToEntity(ContentDTO dto) {
+        Content content = new Content();
+        content.setContentId(dto.getContentId());
+        content.setUserId(dto.getUserId());
+        content.setContent(dto.getContent());
+        content.setState(dto.getState());
+        content.setCreateTime(dto.getCreateTime()); // 补全字段赋值
+        return content;
+    }
+}
