@@ -19,7 +19,6 @@ public class ContentController {
     // 获取用户内容
     @GetMapping("/contents")
     public ResultVO<List<ContentDTO>> getContents() {
-        System.out.println("---------------------------------"+contentService.getContents());
         return ResultVO.ok(contentService.getContents());
     }
 
