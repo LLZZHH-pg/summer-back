@@ -19,7 +19,7 @@ public class ContentController {
     // 获取用户内容
     @GetMapping("/contents")
     public ResultVO<List<ContentDTO>> getContents() {
-        return ResultVO.ok(contentService.getContents());
+        return ResultVO.ok(contentService.getContentsOrdered());
     }
 
     // 保存内容
@@ -29,12 +29,6 @@ public class ContentController {
         return ResultVO.ok(null);
     }
 
-    // 更新状态
-//    @PostMapping("/contents/state")
-//    public ResultVO<Void> updateState(@RequestBody UpdateStateRequest request) {
-//        contentService.updateContentState(contentDTO.getContentId(), request.getState());
-//        return ResultVO.ok(null);
-//    }
     @PostMapping("/contents/state")
     public ResultVO<Void> updateState(@RequestBody ContentDTO contentDTO) {
         contentService.updateContentState(contentDTO.getContentId(), contentDTO.getState());
@@ -55,31 +49,7 @@ public class ContentController {
     }
 
     // 文件删除
-    @PostMapping("/deleteFile")
-    public ResultVO<Boolean> deleteFile(@RequestParam String fileUrl) {
-        return ResultVO.ok(contentService.deleteFile(fileUrl));
-    }
 
-    // 内部类用于接收更新状态的请求
-//    public static class UpdateStateRequest {
-//        private String id;
-//        private String state;
-//
-//        // getters and setters
-//        public String getId() {
-//            return id;
-//        }
-//
-//        public void setId(String id) {
-//            this.id = id;
-//        }
-//
-//        public String getState() {
-//            return state;
-//        }
-//
-//        public void setState(String state) {
-//            this.state = state;
-//        }
-//    }
+
+
 }

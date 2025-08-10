@@ -36,12 +36,13 @@ public class ContentServiceImpl implements ContentService {
     private String urlPath;
 
     @Override
-    public List<ContentDTO> getContents() {
+    public List<ContentDTO> getContentsOrdered() {
         Integer userId = getCurrentUserId();
         // 使用条件构造器查询
         QueryWrapper<Content> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("uid", userId) // 注意这里使用数据库实际字段名
-                .ne("state", "delete"); // 排除已删除的内容
+                .ne("state", "delete") // 排除已删除的内容
+                .orderByDesc("time"); // 按创建时间降序排列
         List<Content> contents = contentMapper.selectList(queryWrapper);
         return contents.stream()
                 .map(this::convertToDTO)
@@ -65,9 +66,34 @@ public class ContentServiceImpl implements ContentService {
                 content.setContentId(dto.getContentId());
                 contentMapper.updateById(content);
             }
+            cleanUnusedImages(dto.getUploadedImages(), dto.getUsedImages());
         } catch (Exception e) {
             throw new RuntimeException("保存内容失败: " + e.getMessage(), e);
         }
+    }
+    private void cleanUnusedImages(List<String> uploadedImages, List<String> usedImages) {
+        if (uploadedImages == null || uploadedImages.isEmpty()) return;
+        // 找出未使用的图片
+        List<String> unusedImages = uploadedImages.stream()
+                .filter(url -> !usedImages.contains(url))
+                .toList();
+        // 删除未使用的图片
+        for (String imageUrl : unusedImages) {
+            try {
+                deleteFile(imageUrl);
+            } catch (Exception e) {
+                // 记录错误但不中断流程
+                System.err.println("删除未使用图片失败: " + imageUrl + ", 原因: " + e.getMessage());
+            }
+        }
+    }
+    @Override
+    public boolean deleteFile(String fileUrl) {
+        String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+        String filePath = uploadDir + File.separator + fileName;
+
+        File file = new File(filePath);
+        return file.exists() && file.delete();
     }
 
     @Override
@@ -157,21 +183,12 @@ public class ContentServiceImpl implements ContentService {
         }
     }
 
-    @Override
-    public boolean deleteFile(String fileUrl) {
-        String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-        String filePath = uploadDir + File.separator + fileName;
-
-        File file = new File(filePath);
-        return file.exists() && file.delete();
-    }
 
     private Integer getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
             // 直接从User对象获取uid
-            System.out.println("当前用户ID: " + currentUser.getUid());
             return currentUser.getUid();
         }
         throw new SecurityException("用户未认证");

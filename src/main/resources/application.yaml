@@ -10,6 +10,11 @@ spring:
         user:
             name: admin
             password: password
+    servlet:
+        multipart:
+            max-file-size: 20MB
+            max-request-size: 250MB
+            enabled: true
 server:
     port: 7395
 
@@ -25,5 +30,5 @@ logging:
         console: utf-8
 app:
   upload:
-    dir: "D:/jweb-endwork/uploads"
+    dir: "D:/IDEA/java/summer-pictures"
     url-path: "/api/upfile"

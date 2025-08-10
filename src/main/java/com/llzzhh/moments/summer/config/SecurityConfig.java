@@ -26,7 +26,8 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/user/auth/register",
             "/api/user/auth/login",
-            "/api/public/**"
+            "/api/public/**",
+            "/api/upfile/**"
     };
 
     @Autowired

@@ -3,6 +3,7 @@ package com.llzzhh.moments.summer.dto;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ContentDTO {
@@ -12,4 +13,7 @@ public class ContentDTO {
     private String state;
     private LocalDateTime createTime;
     private Integer likes;
+
+    private List<String> uploadedImages;
+    private List<String> usedImages;
 }
