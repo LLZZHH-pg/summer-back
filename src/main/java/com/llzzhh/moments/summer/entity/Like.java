@@ -8,15 +8,14 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("content")
-public class Content {
-    @TableId(value = "id")
+@TableName("likes")
+public class Like {
+    @TableId("likeId")
+    private String likeId;
+    @TableField("contentId")
     private String contentId;
-    @TableField("uid")
+    @TableField("userID")
     private Integer userId;
-    private String content;
-    private String state;
-    @TableField("time")
+    @TableField("like_createtime")
     private LocalDateTime createTime;
-    private Integer likes;
 }

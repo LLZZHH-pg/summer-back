@@ -1,9 +1,9 @@
 package com.llzzhh.moments.summer.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.llzzhh.moments.summer.entity.Content;
+import com.llzzhh.moments.summer.entity.Like;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ContentMapper extends BaseMapper<Content> {
+public interface LikeMapper extends BaseMapper<Like> {
 }

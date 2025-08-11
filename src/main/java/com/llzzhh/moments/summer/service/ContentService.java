@@ -8,10 +8,11 @@ import java.util.List;
 public interface ContentService {
     List<ContentDTO> getContentsOrdered();
     void saveContent(ContentDTO dto);
-
     boolean deleteFile(String fileUrl);
 
     void updateContentState(String id, String state);
     void deleteContent(String id);
     String uploadFile(MultipartFile file);
+
+    void likeContent(String id);
 }

@@ -42,6 +42,11 @@ public class ContentController {
         return ResultVO.ok(null);
     }
 
+    @PostMapping("/contents/like")
+    public ResultVO<Void> likeContent(@RequestBody ContentDTO contentDTO) {
+        contentService.likeContent(contentDTO.getContentId());
+        return ResultVO.ok(null);
+    }
     // 文件上传
     @PostMapping("/upload")
     public ResultVO<String> uploadFile(@RequestParam("file") MultipartFile file) {

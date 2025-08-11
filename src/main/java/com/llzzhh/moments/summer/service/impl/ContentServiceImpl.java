@@ -7,6 +7,9 @@ import com.llzzhh.moments.summer.entity.Content;
 import com.llzzhh.moments.summer.mapper.ContentMapper;
 import com.llzzhh.moments.summer.service.ContentService;
 import com.llzzhh.moments.summer.entity.User;
+import com.llzzhh.moments.summer.entity.Like;
+import com.llzzhh.moments.summer.mapper.LikeMapper;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 public class ContentServiceImpl implements ContentService {
 
     private final ContentMapper contentMapper;
+    private final LikeMapper likeMapper;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -62,8 +66,8 @@ public class ContentServiceImpl implements ContentService {
                 contentMapper.insert(content);
             } else {
                 // 更新：使用现有ID
-                content.setCreateTime(LocalDateTime.now());
                 content.setContentId(dto.getContentId());
+                content.setCreateTime(LocalDateTime.now());
                 contentMapper.updateById(content);
             }
             cleanUnusedImages(dto.getUploadedImages(), dto.getUsedImages());
@@ -135,6 +139,27 @@ public class ContentServiceImpl implements ContentService {
             throw new RuntimeException("删除内容失败: " + e.getMessage(), e);
         }
     }
+    @Override
+    public void likeContent(String id) {
+        if (id == null || id.isBlank() || "undefined".equals(id) || "null".equals(id)) {
+            throw new IllegalArgumentException("无效的内容ID");
+        }
+        try {
+            Like like = new Like();
+            like.setLikeId(id + "_" + getCurrentUserId());
+            like.setContentId(id);
+            like.setUserId(getCurrentUserId());
+            like.setCreateTime(LocalDateTime.now());
+            likeMapper.insert(like);
+
+            UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+            updateWrapper.eq("id", id)
+                    .setSql("likes = likes + 1");  // 原子操作保证线程安全
+            contentMapper.update(null, updateWrapper);
+        } catch (Exception e) {
+            throw new RuntimeException("点赞内容失败: " + e.getMessage(), e);
+        }
+    }
 
     @Override
     public String uploadFile(MultipartFile file) {
@@ -201,7 +226,7 @@ public class ContentServiceImpl implements ContentService {
         dto.setContent(content.getContent());
         dto.setState(content.getState());
         dto.setCreateTime(content.getCreateTime()); // 修正字段名
-        // 如有需要可补充其他字段
+        dto.setLikes(content.getLikes());
         return dto;
     }
 
