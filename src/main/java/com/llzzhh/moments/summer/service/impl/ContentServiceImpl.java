@@ -146,21 +146,34 @@ public class ContentServiceImpl implements ContentService {
         }
         try {
             Like like = new Like();
-            like.setLikeId(id + "_" + getCurrentUserId());
-            like.setContentId(id);
-            like.setUserId(getCurrentUserId());
-            like.setCreateTime(LocalDateTime.now());
-            likeMapper.insert(like);
+            boolean isLike=isLike(id);
+            if (!isLike) {
+                like.setLikeId(id + "_" + getCurrentUserId());
+                like.setContentId(id);
+                like.setUserId(getCurrentUserId());
+                like.setCreateTime(LocalDateTime.now());
+                likeMapper.insert(like);
 
-            UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
-            updateWrapper.eq("id", id)
-                    .setSql("likes = likes + 1");  // 原子操作保证线程安全
-            contentMapper.update(null, updateWrapper);
+                UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+                updateWrapper.eq("id", id)
+                        .setSql("likes = likes + 1");
+                contentMapper.update(null, updateWrapper);
+            } else {
+                String likeId = id + "_" + getCurrentUserId();
+                likeMapper.deleteById(likeId);
+                UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
+                updateWrapper.eq("id", id)
+                        .setSql("likes = likes - 1");
+                contentMapper.update(null, updateWrapper);
+            }
         } catch (Exception e) {
             throw new RuntimeException("点赞内容失败: " + e.getMessage(), e);
         }
     }
-
+    boolean isLike(String id){
+        return likeMapper.exists(new QueryWrapper<Like>()
+                .eq("likeID", id + "_" + getCurrentUserId()));
+    }
     @Override
     public String uploadFile(MultipartFile file) {
         try {
@@ -227,6 +240,7 @@ public class ContentServiceImpl implements ContentService {
         dto.setState(content.getState());
         dto.setCreateTime(content.getCreateTime()); // 修正字段名
         dto.setLikes(content.getLikes());
+        dto.setIsLiked(isLike(content.getContentId()));
         return dto;
     }
 
