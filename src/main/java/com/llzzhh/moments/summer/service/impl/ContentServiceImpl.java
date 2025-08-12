@@ -87,7 +87,10 @@ public class ContentServiceImpl implements ContentService {
         // 删除未使用的图片
         for (String imageUrl : unusedImages) {
             try {
-                deleteFile(imageUrl);
+                boolean deleted = deleteFile(imageUrl);
+                if (!deleted) {
+                    System.err.println("删除" + imageUrl+"失败");
+                }
             } catch (Exception e) {
                 // 记录错误但不中断流程
                 System.err.println("删除未使用图片失败: " + imageUrl + ", 原因: " + e.getMessage());
@@ -105,7 +108,7 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     public void updateContentState(String id, String state) {
-        Content content = new Content();
+//        Content content = new Content();
         if (id == null || id.isBlank() || "undefined".equals(id) || "null".equals(id)) {
             throw new IllegalArgumentException("无效的内容ID");
         }
@@ -162,12 +165,12 @@ public class ContentServiceImpl implements ContentService {
                         .setSql("likes = likes + 1");
                 contentMapper.update(null, updateWrapper);
             } else {
-                String likeId = id + "_" + getCurrentUserId();
+                String likeId = "like"+id + "_" + getCurrentUserId();
                 likeMapper.deleteById(likeId);
-                UpdateWrapper<Content> updateWrapper = new UpdateWrapper<>();
-                updateWrapper.eq("id", id)
+                UpdateWrapper<Content> likeWrapper = new UpdateWrapper<>();
+                likeWrapper.eq("id", id)
                         .setSql("likes = likes - 1");
-                contentMapper.update(null, updateWrapper);
+                contentMapper.update(null, likeWrapper);
             }
         } catch (Exception e) {
             throw new RuntimeException("点赞内容失败: " + e.getMessage(), e);
@@ -175,7 +178,7 @@ public class ContentServiceImpl implements ContentService {
     }
     boolean isLike(String id){
         return likeMapper.exists(new QueryWrapper<Like>()
-                .eq("likeID", id + "_" + getCurrentUserId()));
+                .eq("likeID", "like"+id + "_" + getCurrentUserId()));
     }
     @Override
     public void commentContent(String id, String commentText) {
@@ -206,32 +209,7 @@ public class ContentServiceImpl implements ContentService {
     public String uploadFile(MultipartFile file) {
         try {
             // 检查文件是否为空
-            if (file.isEmpty()) {
-                throw new IllegalArgumentException("上传文件为空");
-            }
-
-            // 创建上传目录
-            File uploadDirFile = new File(uploadDir);
-            if (!uploadDirFile.exists()) {
-                boolean created = uploadDirFile.mkdirs();
-                if (!created) {
-                    throw new RuntimeException("无法创建上传目录: " + uploadDir);
-                }
-            }
-
-            // 验证文件名
-            String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || originalFilename.isBlank()) {
-                throw new IllegalArgumentException("文件名无效");
-            }
-
-            // 检查文件扩展名
-            int lastDotIndex = originalFilename.lastIndexOf(".");
-            if (lastDotIndex == -1) {
-                throw new IllegalArgumentException("文件缺少扩展名");
-            }
-
-            String extension = originalFilename.substring(lastDotIndex);
+            String extension = getString(file);
             String uniqueFileName = UUID.randomUUID() + extension;
             String filePath = uploadDir + File.separator + uniqueFileName;
 
@@ -247,6 +225,35 @@ public class ContentServiceImpl implements ContentService {
         } catch (Exception e) {
             throw new RuntimeException("未知错误: " + e.getMessage(), e);
         }
+    }
+
+    private String getString(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("上传文件为空");
+        }
+
+        // 创建上传目录
+        File uploadDirFile = new File(uploadDir);
+        if (!uploadDirFile.exists()) {
+            boolean created = uploadDirFile.mkdirs();
+            if (!created) {
+                throw new RuntimeException("无法创建上传目录: " + uploadDir);
+            }
+        }
+
+        // 验证文件名
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || originalFilename.isBlank()) {
+            throw new IllegalArgumentException("文件名无效");
+        }
+
+        // 检查文件扩展名
+        int lastDotIndex = originalFilename.lastIndexOf(".");
+        if (lastDotIndex == -1) {
+            throw new IllegalArgumentException("文件缺少扩展名");
+        }
+
+        return originalFilename.substring(lastDotIndex);
     }
 
 
@@ -269,6 +276,11 @@ public class ContentServiceImpl implements ContentService {
         dto.setCreateTime(content.getCreateTime()); // 修正字段名
         dto.setLikes(content.getLikes());
         dto.setIsLiked(isLike(content.getContentId()));
+        QueryWrapper<Comment> commentQuery = new QueryWrapper<>();
+        commentQuery.eq("contentId", content.getContentId())
+                .orderByDesc("comment_createtime");
+        List<Comment> comments = commentMapper.selectList(commentQuery);
+        dto.setComments(comments);
         return dto;
     }
 
@@ -278,7 +290,7 @@ public class ContentServiceImpl implements ContentService {
         content.setUserId(dto.getUserId());
         content.setContent(dto.getContent());
         content.setState(dto.getState());
-        content.setCreateTime(dto.getCreateTime()); // 补全字段赋值
+        content.setCreateTime(dto.getCreateTime());
         return content;
     }
 }

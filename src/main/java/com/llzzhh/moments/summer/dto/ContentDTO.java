@@ -1,5 +1,6 @@
 package com.llzzhh.moments.summer.dto;
 
+import com.llzzhh.moments.summer.entity.Comment;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class ContentDTO {
     private Integer likes;
     private Boolean isLiked;
     private String commentText;
+    private List<Comment> comments;
 
     private List<String> uploadedImages;
     private List<String> usedImages;
