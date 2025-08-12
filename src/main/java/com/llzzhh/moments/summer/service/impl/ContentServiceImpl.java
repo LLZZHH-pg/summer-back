@@ -9,6 +9,8 @@ import com.llzzhh.moments.summer.service.ContentService;
 import com.llzzhh.moments.summer.entity.User;
 import com.llzzhh.moments.summer.entity.Like;
 import com.llzzhh.moments.summer.mapper.LikeMapper;
+import com.llzzhh.moments.summer.entity.Comment;
+import  com.llzzhh.moments.summer.mapper.CommentMapper;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +34,7 @@ public class ContentServiceImpl implements ContentService {
 
     private final ContentMapper contentMapper;
     private final LikeMapper likeMapper;
+    private final CommentMapper commentMapper;
 
     @Value("${app.upload.dir}")
     private String uploadDir;
@@ -148,7 +151,7 @@ public class ContentServiceImpl implements ContentService {
             Like like = new Like();
             boolean isLike=isLike(id);
             if (!isLike) {
-                like.setLikeId(id + "_" + getCurrentUserId());
+                like.setLikeId("like"+id + "_" + getCurrentUserId());
                 like.setContentId(id);
                 like.setUserId(getCurrentUserId());
                 like.setCreateTime(LocalDateTime.now());
@@ -174,6 +177,31 @@ public class ContentServiceImpl implements ContentService {
         return likeMapper.exists(new QueryWrapper<Like>()
                 .eq("likeID", id + "_" + getCurrentUserId()));
     }
+    @Override
+    public void commentContent(String id, String commentText) {
+        if (id == null || id.isBlank() || "undefined".equals(id) || "null".equals(id)) {
+            throw new IllegalArgumentException("无效的内容ID");
+        }
+        if (commentText == null || commentText.isBlank()) {
+            throw new IllegalArgumentException("评论内容不能为空");
+        }
+        if(commentText.length()>520){
+            throw new IllegalArgumentException("评论内容过长，不能超过520个字符");
+        }
+        try{
+            Comment comment = new Comment();
+            comment.setCommentId("comment" + UUID.randomUUID());
+            comment.setContentId(id);
+            comment.setUserId(getCurrentUserId());
+            comment.setCommentText(commentText);
+            comment.setCreateTime(LocalDateTime.now());
+            commentMapper.insert(comment);
+        }catch (Exception e){
+            throw new RuntimeException("评论内容失败: " + e.getMessage(), e);
+        }
+
+    }
+
     @Override
     public String uploadFile(MultipartFile file) {
         try {

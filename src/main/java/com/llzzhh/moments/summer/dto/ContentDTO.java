@@ -14,6 +14,7 @@ public class ContentDTO {
     private LocalDateTime createTime;
     private Integer likes;
     private Boolean isLiked;
+    private String commentText;
 
     private List<String> uploadedImages;
     private List<String> usedImages;

@@ -26,7 +26,7 @@ CREATE TABLE `comment` (
   `commID` varchar(50) NOT NULL,
   `contentID` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `userID` int(6) unsigned zerofill NOT NULL,
-  `commCON` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `commCON` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `comment_createtime` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`commID`),
   KEY `coid->cid` (`contentID`),
@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS `content`;
 CREATE TABLE `content` (
   `id` varchar(50) NOT NULL,
   `uid` int(6) unsigned zerofill NOT NULL,
-  `content` longtext NOT NULL,
+  `content` mediumtext NOT NULL,
   `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `state` enum('private','public','save','blocked','delete') NOT NULL DEFAULT 'private',
   `likes` int NOT NULL DEFAULT '0',
@@ -151,4 +151,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-08-12  1:06:00
+-- Dump completed on 2025-08-12 14:34:36

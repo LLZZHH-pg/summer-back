@@ -1,0 +1,23 @@
+package com.llzzhh.moments.summer.entity;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+@TableName("comment")
+public class Comment {
+    @TableId("commID")
+    private String commentId;
+    @TableField("contentId")
+    private String contentId;
+    @TableField("userID")
+    private Integer userId;
+    @TableField("comment_createtime")
+    private LocalDateTime createTime;
+    @TableField("commCON")
+    private String commentText;
+}

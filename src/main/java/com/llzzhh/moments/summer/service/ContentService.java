@@ -14,5 +14,5 @@ public interface ContentService {
     void deleteContent(String id);
     String uploadFile(MultipartFile file);
     void likeContent(String id);
-//    Boolean isLiked(String contentId, Integer userId);
+    void commentContent(String contentId, String commentText);
 }
