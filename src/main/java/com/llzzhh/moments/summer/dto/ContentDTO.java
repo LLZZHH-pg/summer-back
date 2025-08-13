@@ -20,4 +20,7 @@ public class ContentDTO {
 
     private List<String> uploadedImages;
     private List<String> usedImages;
+    // 分页相关字段
+    private Integer page;
+    private Integer pageSize;
 }

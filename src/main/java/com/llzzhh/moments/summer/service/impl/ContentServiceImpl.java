@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -43,15 +44,16 @@ public class ContentServiceImpl implements ContentService {
     private String urlPath;
 
     @Override
-    public List<ContentDTO> getContentsOrdered() {
+    public List<ContentDTO> getContentsOrdered(int page, int size) {
         Integer userId = getCurrentUserId();
         // 使用条件构造器查询
         QueryWrapper<Content> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("uid", userId) // 注意这里使用数据库实际字段名
-                .ne("state", "delete") // 排除已删除的内容
-                .orderByDesc("time"); // 按创建时间降序排列
-        List<Content> contents = contentMapper.selectList(queryWrapper);
-        return contents.stream()
+//                .ne("state", "delete") // 排除已删除的内容
+                .in("state", Arrays.asList("private", "public", "save"))
+                .orderByDesc("time")// 按创建时间降序排列
+                .last("LIMIT " + ((page-1) * size) + ", " + size);
+        return contentMapper.selectList(queryWrapper).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }

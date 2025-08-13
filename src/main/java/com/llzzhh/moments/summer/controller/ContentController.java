@@ -18,8 +18,8 @@ public class ContentController {
 
     // 获取用户内容
     @GetMapping("/contents")
-    public ResultVO<List<ContentDTO>> getContents() {
-        return ResultVO.ok(contentService.getContentsOrdered());
+    public ResultVO<List<ContentDTO>> getContents(@RequestParam (defaultValue = "1") int page , @RequestParam (defaultValue = "10") int pageSize) {
+        return ResultVO.ok(contentService.getContentsOrdered(page, pageSize));
     }
 
     // 保存内容
