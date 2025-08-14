@@ -10,11 +10,13 @@ import java.util.List;
 public class ContentDTO {
     private String contentId;
     private Integer userId;
+    private String username;
     private String content;
     private String state;
     private LocalDateTime createTime;
     private Integer likes;
     private Boolean isLiked;
+
     private String commentText;
     private List<Comment> comments;
 
@@ -23,4 +25,6 @@ public class ContentDTO {
     // 分页相关字段
     private Integer page;
     private Integer pageSize;
+
+
 }

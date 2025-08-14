@@ -58,6 +58,7 @@ public class ContentServiceImpl implements ContentService {
                 .collect(Collectors.toList());
     }
 
+
     @Override
     public void saveContent(ContentDTO dto) {
         Content content = convertToEntity(dto);
@@ -178,7 +179,7 @@ public class ContentServiceImpl implements ContentService {
             throw new RuntimeException("点赞内容失败: " + e.getMessage(), e);
         }
     }
-    boolean isLike(String id){
+    private boolean isLike(String id){
         return likeMapper.exists(new QueryWrapper<Like>()
                 .eq("likeID", "like"+id + "_" + getCurrentUserId()));
     }
