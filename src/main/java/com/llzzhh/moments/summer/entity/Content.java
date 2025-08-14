@@ -12,11 +12,18 @@ import java.time.LocalDateTime;
 public class Content {
     @TableId(value = "id")
     private String contentId;
+
     @TableField("uid")
     private Integer userId;
+
     private String content;
     private String state;
+
     @TableField("time")
     private LocalDateTime createTime;
+
     private Integer likes;
+
+    @TableField(exist = false)
+    private String username; // 非数据库字段
 }

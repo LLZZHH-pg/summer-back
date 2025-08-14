@@ -12,12 +12,19 @@ import java.time.LocalDateTime;
 public class Comment {
     @TableId("commID")
     private String commentId;
-    @TableField("contentId")
+
+    @TableField("contentID")
     private String contentId;
+
     @TableField("userID")
     private Integer userId;
+
     @TableField("comment_createtime")
     private LocalDateTime createTime;
+
     @TableField("commCON")
     private String commentText;
+
+    @TableField(exist = false)
+    private String username; // 非数据库字段
 }

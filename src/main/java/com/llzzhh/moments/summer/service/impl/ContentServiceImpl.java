@@ -45,15 +45,11 @@ public class ContentServiceImpl implements ContentService {
 
     @Override
     public List<ContentDTO> getContentsOrdered(int page, int size) {
-        Integer userId = getCurrentUserId();
-        // 使用条件构造器查询
-        QueryWrapper<Content> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("uid", userId) // 注意这里使用数据库实际字段名
-//                .ne("state", "delete") // 排除已删除的内容
-                .in("state", Arrays.asList("private", "public", "save"))
-                .orderByDesc("time")// 按创建时间降序排列
-                .last("LIMIT " + ((page-1) * size) + ", " + size);
-        return contentMapper.selectList(queryWrapper).stream()
+        int offset = (page - 1) * size;
+        List<Content> contents = contentMapper.selectContentWithUsername(
+                getCurrentUserId(), offset, size
+        );
+        return contents.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -274,15 +270,13 @@ public class ContentServiceImpl implements ContentService {
         ContentDTO dto = new ContentDTO();
         dto.setContentId(content.getContentId());
         dto.setUserId(content.getUserId());
+        dto.setUsername(content.getUsername());
         dto.setContent(content.getContent());
         dto.setState(content.getState());
         dto.setCreateTime(content.getCreateTime()); // 修正字段名
         dto.setLikes(content.getLikes());
         dto.setIsLiked(isLike(content.getContentId()));
-        QueryWrapper<Comment> commentQuery = new QueryWrapper<>();
-        commentQuery.eq("contentId", content.getContentId())
-                .orderByDesc("comment_createtime");
-        List<Comment> comments = commentMapper.selectList(commentQuery);
+        List<Comment> comments = commentMapper.selectCommentsWithUsername(content.getContentId());
         dto.setComments(comments);
         return dto;
     }

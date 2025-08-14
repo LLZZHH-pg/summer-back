@@ -15,18 +15,11 @@ import com.llzzhh.moments.summer.entity.Comment;
 import  com.llzzhh.moments.summer.mapper.CommentMapper;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 
@@ -40,13 +33,10 @@ public class SquareServiceImpl implements SquareService {
 
 @Override
 public List<ContentDTO> getContentsOrderedSquare(int page, int size) {
-    QueryWrapper<Content> queryWrapper = new QueryWrapper<>();
-    queryWrapper
-            .in("state", Arrays.asList("private", "public", "save"))
-            .orderByDesc("likes") // 按点赞数降序
-            .orderByDesc("time")  // 点赞数相同按时间降序
-            .last("LIMIT " + ((page-1) * size) + ", " + size);
-    return contentMapper.selectList(queryWrapper).stream()
+    int offset = (page - 1) * size;
+    List<Content> contents = contentMapper.selectSquareContentsWithUsername(offset, size);
+
+    return contents.stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
 }
@@ -56,15 +46,13 @@ public List<ContentDTO> getContentsOrderedSquare(int page, int size) {
         ContentDTO dto = new ContentDTO();
         dto.setContentId(content.getContentId());
         dto.setUserId(content.getUserId());
+        dto.setUsername(content.getUsername());
         dto.setContent(content.getContent());
         dto.setState(content.getState());
         dto.setCreateTime(content.getCreateTime()); // 修正字段名
         dto.setLikes(content.getLikes());
         dto.setIsLiked(isLike(content.getContentId()));
-        QueryWrapper<Comment> commentQuery = new QueryWrapper<>();
-        commentQuery.eq("contentId", content.getContentId())
-                .orderByDesc("comment_createtime");
-        List<Comment> comments = commentMapper.selectList(commentQuery);
+        List<Comment> comments = commentMapper.selectCommentsWithUsername(content.getContentId());
         dto.setComments(comments);
         return dto;
     }
